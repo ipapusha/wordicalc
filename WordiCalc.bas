@@ -263,7 +263,12 @@ End Function
 Private Function ExtractContent(jsonResponse As String, useJson As Boolean, schema As String) As String
     On Error GoTo ErrorHandler
     
-    Dim parsed As Object: Set parsed = JsonConverter.ParseJson(jsonResponse)
+    Dim parseResult As ParseResult: parseResult = LibJSON.Parse(jsonResponse)
+    If Not parseResult.IsValid Then
+        ExtractContent = "JSON Parse Error: " & parseResult.Error
+        Exit Function
+    End If
+    Dim parsed As Object: Set parsed = parseResult.Value
     
     If parsed.Exists("error") Then
         If TypeName(parsed("error")) = "Dictionary" Then
@@ -304,7 +309,9 @@ Private Function ExtractContent(jsonResponse As String, useJson As Boolean, sche
     
     ' Handle JSON schema response
     If useJson And schema <> "string" Then
-        Dim contentJson As Object: Set contentJson = JsonConverter.ParseJson(content)
+        Dim contentParseResult As ParseResult: contentParseResult = LibJSON.Parse(content)
+        If Not contentParseResult.IsValid Then Exit Function
+        Dim contentJson As Object: Set contentJson = contentParseResult.Value
         If Not contentJson Is Nothing And contentJson.Exists("value") Then
             content = CStr(contentJson("value"))
         End If
@@ -349,8 +356,12 @@ End Function
 Private Function ParseModels(jsonResponse As String) As String
     On Error GoTo ErrorHandler
     
-    Dim parsed As Object: Set parsed = ParseJson(jsonResponse)
-    If parsed Is Nothing Then ParseModels = "Error: Could not parse response": Exit Function
+    Dim parseResult As ParseResult: parseResult = LibJSON.Parse(jsonResponse)
+    If Not parseResult.IsValid Then
+        ParseModels = "Error: Could not parse response - " & parseResult.Error
+        Exit Function
+    End If
+    Dim parsed As Object: Set parsed = parseResult.Value
     
     Dim result As String: result = "Available Models:" & vbCrLf
     Dim modelCount As Integer
