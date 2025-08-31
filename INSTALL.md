@@ -2,18 +2,32 @@
 
 ## Quick Installation (3 minutes)
 
-### Step 1: Download the Extension
-Download the `WordiCalc.bas` file from this repository.
+### Step 1: Download the Required Files
+Download these three files from this repository:
+- `WordiCalc.bas` - Main WordiCalc functions
+- `JsonConverter.bas` - JSON parsing library
+- `Dictionary.cls` - Cross-platform dictionary (Mac compatibility)
 
 ### Step 2: Open Excel VBA Editor
 - **Windows**: Press `Alt + F11`
 - **Mac**: Press `Opt + F11` (or `Fn + Opt + F11`)
 
-### Step 3: Import the Module
+### Step 3: Import All Files
+**Important**: Import all three files for full functionality.
+
 1. In the VBA Editor, right-click on **VBAProject** in the Project Explorer
-2. Select **Insert** → **Module** (or right-click and choose **Import File...**)
-3. If using Import File, browse to and select `WordiCalc.bas`
-4. If using Insert Module, copy the entire contents of `WordiCalc.bas` and paste it
+2. Select **Import File...**
+3. Browse to and select `Dictionary.cls` first
+4. Repeat: Import `JsonConverter.bas` 
+5. Repeat: Import `WordiCalc.bas`
+
+**Alternative method (copy/paste):**
+1. Right-click VBAProject → Insert → **Class Module** (rename to "Dictionary")
+2. Copy contents of `Dictionary.cls` and paste
+3. Right-click VBAProject → Insert → **Module** (for JsonConverter)
+4. Copy contents of `JsonConverter.bas` and paste  
+5. Right-click VBAProject → Insert → **Module** (for WordiCalc)
+6. Copy contents of `WordiCalc.bas` and paste
 
 ### Step 4: Save Your Workbook
 1. Save your workbook as a **macro-enabled file** (`.xlsm` format)
@@ -61,9 +75,17 @@ In any Excel cell, enter:
 ## Troubleshooting
 
 ### "Function not recognized"
-- Ensure the WordiCalc module is imported correctly
+- Ensure all three files are imported correctly:
+  - `Dictionary.cls` (as Class Module)
+  - `JsonConverter.bas` (as Module) 
+  - `WordiCalc.bas` (as Module)
 - Save workbook as `.xlsm` format
 - Enable macros when prompted
+
+### "Compile error: User-defined type not defined"
+- Ensure `Dictionary.cls` is imported as a **Class Module**
+- Restart Excel and reopen the workbook
+- This error typically means the Dictionary class wasn't imported correctly
 
 ### "API key not configured"
 - Run: `=LLMConfig("set", "openai_api_key", "your-key")`
@@ -83,11 +105,11 @@ In any Excel cell, enter:
 ## Installation Options
 
 ### Option A: Single Workbook
-- Import `WordiCalc.bas` into your specific workbook
+- Import all three files (`Dictionary.cls`, `JsonConverter.bas`, `WordiCalc.bas`) into your specific workbook
 - Functions only available in that workbook
 
 ### Option B: Excel Add-in (All Workbooks)
-1. Create new workbook with the module
+1. Create new workbook and import all three files
 2. Save as **Excel Add-in** (`.xlam`)
 3. Go to **File** → **Options** → **Add-ins**
 4. Click **Manage Excel Add-ins** → **Go**
@@ -95,6 +117,26 @@ In any Excel cell, enter:
 6. Check the box to enable it
 
 The add-in approach makes LLM functions available in all Excel workbooks.
+
+## Platform Compatibility
+
+### Windows Excel
+- ✅ Works with Excel 2010, 2013, 2016, 2019, 2021, 365
+- ✅ No external references required
+- ✅ Automatic fallback to native `Scripting.Dictionary` when available
+
+### Mac Excel  
+- ✅ Works with Excel 2016, 2019, 2021, 365 for Mac
+- ✅ Full compatibility without Microsoft Scripting Runtime
+- ✅ Uses cross-platform `Dictionary.cls` implementation
+
+### Dependencies Explained
+**Why three files?**
+1. **`WordiCalc.bas`**: Your main LLM functions
+2. **`JsonConverter.bas`**: Professional JSON parsing (handles complex API responses) 
+3. **`Dictionary.cls`**: Mac-compatible dictionary (replaces Windows-only `Scripting.Dictionary`)
+
+These dependencies ensure WordiCalc works reliably across all platforms and handles real-world JSON responses from AI APIs.
 
 ---
 

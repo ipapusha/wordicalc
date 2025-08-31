@@ -13,7 +13,6 @@ Private Const CONFIG_PREFIX As String = "LLM_"
 ' ========================================
 
 Public Function LLM(prompt As String, Optional sys As String = "You are a helpful assistant.", Optional schema As String = "string", Optional values As String = "", Optional useJson As Boolean = False) As Variant
-    Application.Volatile
     On Error GoTo ErrorHandler
     
     If Trim(prompt) = "" Then LLM = "Error: Prompt cannot be empty": Exit Function
@@ -45,7 +44,6 @@ ErrorHandler:
 End Function
 
 Public Function LLMConfig(action As String, Optional key As String = "", Optional value As String = "") As String
-    Application.Volatile
     On Error GoTo ErrorHandler
     
     Select Case LCase(Trim(action))
@@ -64,7 +62,6 @@ ErrorHandler:
 End Function
 
 Public Function LLMStatus() As String
-    Application.Volatile
     Dim apiKey As String, endpoint As String, model As String
     apiKey = GetConfig("openai_api_key")
     endpoint = GetConfig("openai_api_endpoint")
@@ -77,7 +74,6 @@ Public Function LLMStatus() As String
 End Function
 
 Public Function LLMModels() As String
-    Application.Volatile
     On Error GoTo ErrorHandler
     
     If GetConfig("openai_api_key") = "" Then
@@ -93,11 +89,11 @@ Public Function LLMModels() As String
     endpoint = Replace(endpoint, "/chat/completions", "/models")
     If Right(endpoint, 7) <> "/models" Then endpoint = endpoint & "/models"
     
-    Dim headers As Object
-    Set headers = CreateObject("Scripting.Dictionary")
+    Dim headers As Dictionary
+    Set headers = New Dictionary
     headers("Authorization") = "Bearer " & GetConfig("openai_api_key")
     
-    Dim result As Object
+    Dim result As Dictionary
     Set result = HttpRequest(endpoint, "GET", headers, "")
     
     If Not result("success") Then
@@ -128,8 +124,8 @@ Private Function CallAPI(prompt As String, sys As String, schema As String, valu
     model = GetConfig("openai_model"): If model = "" Then model = "gpt-3.5-turbo"
     endpoint = GetConfig("openai_api_endpoint"): If endpoint = "" Then endpoint = DEFAULT_API_URL
     
-    Dim headers As Object
-    Set headers = CreateObject("Scripting.Dictionary")
+    Dim headers As Dictionary
+    Set headers = New Dictionary
     headers("Content-Type") = "application/json"
     headers("Authorization") = "Bearer " & GetConfig("openai_api_key")
     
@@ -150,15 +146,28 @@ Private Function CallAPI(prompt As String, sys As String, schema As String, valu
     
     body = body & "}"
     
-    Dim result As Object
+    Dim result As Dictionary
     Set result = HttpRequest(endpoint, "POST", headers, body)
     
     If Not result("success") Then
-        CallAPI = "Error: " & result("status") & " " & result("statusText")
+        CallAPI = "Error: " & result("status") & " " & result("statusText") & vbCrLf & _
+                 "DEBUG INFO: " & result("debug_info")
         Exit Function
     End If
     
-    CallAPI = ExtractContent(result("responseText"), useJson, schema)
+    ' DEBUG: Log successful request info
+    Dim requestDebug As String
+    requestDebug = "DEBUG CallAPI: Request successful" & vbCrLf & result("debug_info") & vbCrLf
+    
+    Dim contentResult As String
+    contentResult = ExtractContent(result("responseText"), useJson, schema)
+    
+    ' If ExtractContent returned an error with debug info, pass it through
+    If Left(contentResult, 6) = "Error:" Then
+        CallAPI = contentResult
+    Else
+        CallAPI = contentResult
+    End If
     Exit Function
     
 ErrorHandler:
@@ -180,7 +189,11 @@ Private Function ConvertOutput(response As String, schema As String, values As S
                 numStr = ExtractNumber(response)
             End If
             If IsNumeric(numStr) Then
-                ConvertOutput = Application.WorksheetFunction.NumberValue(numStr)
+                If schema = "integer" Then
+                    ConvertOutput = CLng(Val(numStr))
+                Else
+                    ConvertOutput = CDbl(Val(numStr))
+                End If
             Else
                 ConvertOutput = "Error: No valid number found in: " & response
             End If
@@ -206,9 +219,9 @@ End Function
 ' UTILITY FUNCTIONS
 ' ========================================
 
-Private Function HttpRequest(url As String, method As String, headers As Object, body As String) As Object
+Private Function HttpRequest(url As String, method As String, headers As Dictionary, body As String) As Dictionary
     Dim http As Object: Set http = CreateObject("WinHttp.WinHttpRequest.5.1")
-    Dim result As Object: Set result = CreateObject("Scripting.Dictionary")
+    Dim result As Dictionary: Set result = New Dictionary
     
     On Error GoTo ErrorHandler
     
@@ -229,6 +242,12 @@ Private Function HttpRequest(url As String, method As String, headers As Object,
     result("responseText") = http.ResponseText
     result("success") = (http.Status >= 200 And http.Status < 300)
     
+    ' DEBUG: Log raw response for debugging
+    result("debug_info") = "URL: " & url & vbCrLf & _
+                          "Status: " & http.Status & vbCrLf & _
+                          "Response Length: " & Len(http.ResponseText) & vbCrLf & _
+                          "First 200 chars: " & Left(http.ResponseText, 200)
+    
     Set HttpRequest = result
     Exit Function
     
@@ -237,30 +256,55 @@ ErrorHandler:
     result("statusText") = "Request Failed"
     result("responseText") = "Error: " & Err.Description
     result("success") = False
+    result("debug_info") = "HTTP Error: " & Err.Description
     Set HttpRequest = result
 End Function
 
 Private Function ExtractContent(jsonResponse As String, useJson As Boolean, schema As String) As String
     On Error GoTo ErrorHandler
     
-    Dim parsed As Object: Set parsed = ParseJson(jsonResponse)
-    If parsed Is Nothing Then ExtractContent = "Error: Invalid JSON response": Exit Function
+    Dim parsed As Object: Set parsed = JsonConverter.ParseJson(jsonResponse)
     
     If parsed.Exists("error") Then
-        ExtractContent = "API Error: " & GetJsonValue(parsed("error"), "message")
+        If TypeName(parsed("error")) = "Dictionary" Then
+            ExtractContent = "API Error: " & parsed("error")("message")
+        Else
+            ExtractContent = "API Error: " & CStr(parsed("error"))
+        End If
         Exit Function
     End If
     
     If Not parsed.Exists("choices") Then
-        ExtractContent = "Error: No choices in response": Exit Function
+        ExtractContent = "Error: No choices in response"
+        Exit Function
     End If
     
-    Dim content As String: content = ExtractFirstChoice(parsed("choices"))
-    If content = "" Then ExtractContent = "Error: No content found": Exit Function
+    ' Get the first choice from the choices array/collection
+    Dim choices As Object: Set choices = parsed("choices")
+    Dim firstChoice As Object
+    
+    If TypeName(choices) = "Collection" Then
+        Set firstChoice = choices(1)  ' Collections are 1-based
+    Else
+        ' Assume it's an array or dictionary
+        Set firstChoice = choices(0)  ' Arrays are 0-based
+    End If
+    
+    Dim content As String
+    If firstChoice.Exists("message") Then
+        content = firstChoice("message")("content")
+    Else
+        content = firstChoice("content")
+    End If
+    
+    If content = "" Then
+        ExtractContent = "Error: No content found in first choice"
+        Exit Function
+    End If
     
     ' Handle JSON schema response
     If useJson And schema <> "string" Then
-        Dim contentJson As Object: Set contentJson = ParseJson(content)
+        Dim contentJson As Object: Set contentJson = JsonConverter.ParseJson(content)
         If Not contentJson Is Nothing And contentJson.Exists("value") Then
             content = CStr(contentJson("value"))
         End If
@@ -273,93 +317,6 @@ ErrorHandler:
     ExtractContent = "Error: " & Err.Description
 End Function
 
-Private Function ExtractFirstChoice(choicesStr As String) As String
-    Dim pos As Long: pos = InStr(choicesStr, """content"":""")
-    If pos = 0 Then Exit Function
-    
-    pos = pos + 11 ' Skip to after "content":"
-    Dim content As String, i As Long, inEscape As Boolean
-    
-    For i = pos To Len(choicesStr)
-        Dim c As String: c = Mid(choicesStr, i, 1)
-        If inEscape Then
-            content = content & c: inEscape = False
-        ElseIf c = "\" Then
-            inEscape = True
-        ElseIf c = """" Then
-            Exit For
-        Else
-            content = content & c
-        End If
-    Next i
-    
-    ExtractFirstChoice = Replace(Replace(content, "\""", """"), "\\", "\")
-End Function
-
-Private Function ParseJson(jsonStr As String) As Object
-    ' Simple JSON parser for basic objects
-    Set ParseJson = CreateObject("Scripting.Dictionary")
-    On Error GoTo ErrorHandler
-    
-    jsonStr = Trim(jsonStr)
-    If Left(jsonStr, 1) <> "{" Then Set ParseJson = Nothing: Exit Function
-    
-    Dim i As Long, key As String, value As String, inString As Boolean, depth As Long
-    Dim parsingKey As Boolean: parsingKey = True
-    i = 2
-    
-    Do While i <= Len(jsonStr) - 1
-        Dim c As String: c = Mid(jsonStr, i, 1)
-        
-        If c = """" Then
-            inString = Not inString
-        ElseIf Not inString Then
-            If c = "{" Or c = "[" Then depth = depth + 1
-            If c = "}" Or c = "]" Then depth = depth - 1
-            If depth = 0 And c = ":" Then parsingKey = False
-            If depth = 0 And c = "," Then
-                If key <> "" Then
-                    key = Replace(key, """", "")
-                    value = Trim(value)
-                    If Left(value, 1) = """" And Right(value, 1) = """" Then
-                        value = Mid(value, 2, Len(value) - 2)
-                    End If
-                    ParseJson(key) = value
-                End If
-                key = "": value = "": parsingKey = True
-            Else
-                If parsingKey And c <> " " And c <> vbTab Then key = key & c
-                If Not parsingKey Then value = value & c
-            End If
-        Else
-            If parsingKey Then key = key & c Else value = value & c
-        End If
-        i = i + 1
-    Loop
-    
-    ' Handle last key-value pair
-    If key <> "" Then
-        key = Replace(key, """", "")
-        value = Trim(value)
-        If Left(value, 1) = """" And Right(value, 1) = """" Then
-            value = Mid(value, 2, Len(value) - 2)
-        End If
-        ParseJson(key) = value
-    End If
-    Exit Function
-    
-ErrorHandler:
-    Set ParseJson = Nothing
-End Function
-
-Private Function GetJsonValue(jsonObj As String, keyName As String) As String
-    Dim obj As Object: Set obj = ParseJson(jsonObj)
-    If Not obj Is Nothing And obj.Exists(keyName) Then
-        GetJsonValue = obj(keyName)
-    Else
-        GetJsonValue = jsonObj ' Return as-is if can't parse
-    End If
-End Function
 
 Private Function BuildSchema(schema As String, values As String) As String
     On Error GoTo ErrorHandler
@@ -454,6 +411,60 @@ Private Function EscapeJson(text As String) As String
     EscapeJson = Replace(EscapeJson, vbLf, "\n")
     EscapeJson = Replace(EscapeJson, vbTab, "\t")
 End Function
+
+' ========================================
+' FUNCTION REGISTRATION
+' ========================================
+
+Public Sub RegisterUDFFunctions()
+    ' Register LLM function with IntelliSense support
+    On Error Resume Next
+    
+    Dim llmArgDesc(1 To 5) As String
+    llmArgDesc(1) = "The text prompt to send to the AI model"
+    llmArgDesc(2) = "System message to guide AI behavior (optional, default: 'You are a helpful assistant.')"
+    llmArgDesc(3) = "Response format: string, integer, float, choice (optional, default: 'string')"
+    llmArgDesc(4) = "Allowed values for choice schema, comma-separated (optional, required for choice schema)"
+    llmArgDesc(5) = "Use JSON schema mode for structured output (optional, default: False)"
+    
+    Application.MacroOptions _
+        Macro:="LLM", _
+        Description:="Call OpenAI/Compatible API with prompt and optional parameters for AI-powered responses", _
+        Category:="WordiCalc AI Functions", _
+        ArgumentDescriptions:=llmArgDesc
+    
+    ' Register LLMConfig function
+    Dim configArgDesc(1 To 3) As String
+    configArgDesc(1) = "Action to perform: set, get, list, or clear"
+    configArgDesc(2) = "Configuration key name (optional, required for set/get/clear)"
+    configArgDesc(3) = "Configuration value (optional, required for set action)"
+    
+    Application.MacroOptions _
+        Macro:="LLMConfig", _
+        Description:="Manage WordiCalc configuration settings (API key, endpoint, model)", _
+        Category:="WordiCalc AI Functions", _
+        ArgumentDescriptions:=configArgDesc
+    
+    ' Register LLMStatus function
+    Application.MacroOptions _
+        Macro:="LLMStatus", _
+        Description:="Display current WordiCalc configuration status and version information", _
+        Category:="WordiCalc AI Functions"
+    
+    ' Register LLMModels function
+    Application.MacroOptions _
+        Macro:="LLMModels", _
+        Description:="List available AI models from the configured API endpoint", _
+        Category:="WordiCalc AI Functions"
+    
+    On Error GoTo 0
+End Sub
+
+Public Sub Auto_Open()
+    ' Automatically register UDF functions when workbook opens
+    RegisterUDFFunctions
+End Sub
+
 
 ' ========================================
 ' CONFIG FUNCTIONS

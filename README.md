@@ -30,8 +30,11 @@ A pure VBA Excel extension that adds an `=LLM(...)` function for integrating Ope
 
 **3-minute setup!** See [INSTALL.md](INSTALL.md) for detailed instructions.
 
-1. **Download**: Get `WordiCalc.bas` file
-2. **Import**: Open Excel VBA Editor (`Alt+F11`), right-click VBAProject → Import File
+1. **Download**: Get the required files:
+   - `WordiCalc.bas` - Main LLM functions
+   - `JsonConverter.bas` - JSON parsing library  
+   - `Dictionary.cls` - Cross-platform dictionary (Mac compatibility)
+2. **Import**: Open Excel VBA Editor (`Alt+F11`), right-click VBAProject → Import File (import all 3 files)
 3. **Save**: Save workbook as `.xlsm` and enable macros
 4. **Configure**: `=LLMConfig("set", "openai_api_key", "your-key")`
 5. **Test**: `=LLM("Hello!")`
@@ -249,15 +252,45 @@ Works with any OpenAI-compatible API:
 
 ## File Structure
 
-Everything is in `WordiCalc.bas`:
-- Main LLM function
-- Configuration management
-- HTTP client
-- JSON parsing
-- OpenAI API integration
-- All helper functions
+WordiCalc consists of three VBA files:
 
-Just one file to import - that's it!
+### `WordiCalc.bas` (Main Module)
+- Main `LLM()` function and variants (`LLMConfig`, `LLMStatus`, `LLMModels`)
+- Configuration management (API key, endpoint, model settings)
+- HTTP client for API communication
+- OpenAI API integration
+- Function registration for IntelliSense tooltips
+- All core functionality
+
+### `JsonConverter.bas` (JSON Library)
+- Professional JSON parsing and serialization
+- Cross-platform compatibility (Windows/Mac)
+- Robust handling of nested objects and arrays
+- **Source**: [VBA-tools/VBA-JSON](https://github.com/VBA-tools/VBA-JSON) by Tim Hall
+- **License**: MIT
+
+### `Dictionary.cls` (Cross-Platform Dictionary)
+- Drop-in replacement for `Scripting.Dictionary`
+- Mac compatibility (no Microsoft Scripting Runtime dependency)
+- Automatic fallback to native `Scripting.Dictionary` on Windows when available
+- **Source**: [VBA-tools/VBA-Dictionary](https://github.com/VBA-tools/VBA-Dictionary) by Tim Hall  
+- **License**: MIT
+
+## Dependencies & Credits
+
+WordiCalc builds upon excellent open-source VBA libraries:
+
+- **JSON Processing**: [VBA-JSON](https://github.com/VBA-tools/VBA-JSON) - Professional JSON converter for VBA
+- **Cross-Platform Dictionary**: [VBA-Dictionary](https://github.com/VBA-tools/VBA-Dictionary) - Mac-compatible dictionary implementation
+
+Both libraries are created by Tim Hall and licensed under MIT. WordiCalc integrates these libraries to provide a robust, cross-platform AI integration solution for Excel.
+
+### Why These Dependencies?
+
+1. **Robust JSON Parsing**: VBA's built-in JSON support is limited. VBA-JSON handles complex nested structures reliably.
+2. **Mac Compatibility**: `Scripting.Dictionary` isn't available on Mac. VBA-Dictionary provides seamless cross-platform support.
+3. **Professional Quality**: These are battle-tested libraries used by thousands of VBA developers.
+4. **MIT Licensed**: Compatible with both personal and commercial use.
 
 ## License
 
