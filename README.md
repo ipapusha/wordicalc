@@ -1,6 +1,7 @@
 # WordiCalc - AI-Powered Excel Extension
 
-A VBA Excel extension that adds an `=LLM(...)` function for integrating OpenAI and compatible AI models directly into spreadsheets.
+A VBA Excel extension that adds an `=LLM(...)` function for integrating OpenAI and compatible AI models directly into spreadsheets. 
+
 
 ## Features
 
@@ -102,6 +103,15 @@ The extension consists of three VBA files:
 - **Dictionary.cls**: Cross-platform dictionary ([VBA-FastDictionary](https://github.com/cristianbuse/VBA-FastDictionary))
 
 Both libraries by Ion Cristian Buse, licensed under MIT.
+
+## Inspiration
+
+* [sheets-llm](https://github.com/nicucalcea/sheets-llm)
+* [cellm](https://github.com/getcellm/cellm)
+* [Excel Copilot](https://support.microsoft.com/en-us/copilot-excel)
+* [otto](https://ottogrid.ai/)
+
+and others
 
 ## Common Issues
 
