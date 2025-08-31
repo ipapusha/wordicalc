@@ -9,7 +9,7 @@ A VBA Excel extension that adds an `=LLM(...)` function for integrating OpenAI a
 - Flexible output types: strings, integers, floats, or predefined choices
 - Custom system messages for AI context
 - Support for local AI (Ollama, LocalAI) and cloud providers
-- Secure API key storage in workbook properties
+- API key storage in workbook properties
 - Cross-platform compatibility (Windows/Mac)
 
 ## Quick Start
@@ -38,7 +38,7 @@ See [INSTALL.md](INSTALL.md) for detailed setup instructions.
 ### Basic Usage
 ```excel
 =LLM("What is the capital of France?")
-=LLM("Analyze this data trend", "You are a business analyst")
+=LLM("Analyze this data trend: QQQ went from $450/share to $490/share.", "You are a business analyst")
 ```
 
 ### Typed Outputs
@@ -51,7 +51,7 @@ See [INSTALL.md](INSTALL.md) for detailed setup instructions.
 ### JSON Schema Mode (Advanced)
 ```excel
 =LLM("Count words: hello world", , "integer", , TRUE)
-=LLM("Classify sentiment", , "choice", "positive,negative,neutral", TRUE)
+=LLM("This product is great!", "classify sentiment", "choice", "positive,negative,neutral", TRUE)
 ```
 
 ## Configuration Functions
@@ -92,7 +92,7 @@ See [INSTALL.md](INSTALL.md) for detailed setup instructions.
 - **Data Analysis**: `=LLM("Summarize trend: 100, 150, 200", "Business analyst")`
 - **Classification**: `=LLM("Categorize: customer complaint", , "choice", "billing,shipping,product")`
 - **Text Processing**: `=LLM("Extract email from: Contact john@example.com")`
-- **Calculations**: `=LLM("$1000 at 5% for 3 years compound?", , "float")`
+- **Calculations**: `=LLM("Future value of $1000, compounded annually at 5%, after 3 years", , "float")`
 
 ## File Structure
 
@@ -106,12 +106,13 @@ Both libraries by Ion Cristian Buse, licensed under MIT.
 
 ## Inspiration
 
+The name *WordiCalc* comes from [VisiCalc](https://en.wikipedia.org/wiki/VisiCalc), the original killer spreadsheet app for the Apple II that served as inspiration for Lotus 1-2-3, Multiplan, and ultimately Microsft Excel. See [history](https://en.wikipedia.org/wiki/Microsoft_Excel#Early_history).
+
 * [sheets-llm](https://github.com/nicucalcea/sheets-llm)
 * [cellm](https://github.com/getcellm/cellm)
-* [Excel Copilot](https://support.microsoft.com/en-us/copilot-excel)
 * [otto](https://ottogrid.ai/)
-
-and others
+* Excel Copilot
+and others.
 
 ## Common Issues
 
@@ -125,7 +126,9 @@ and others
 
 ## Security
 
-API keys are stored securely in workbook custom properties, not visible in normal Excel interface. Don't share workbooks containing API keys.
+API keys are stored in workbook custom properties, not visible in the normal Excel interface. 
+
+**Therefore, do not share workbooks containing API keys.**
 
 ## License
 
