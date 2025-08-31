@@ -389,7 +389,7 @@ Private Function ParseModels(jsonResponse As String) As String
             If model.Exists("id") Then
                 Dim modelName As String: modelName = model("id")
                 If InStr(modelName, "embed") = 0 And InStr(modelName, "whisper") = 0 Then
-                    result = result & "• " & modelName & vbCrLf
+                    result = result & "* " & modelName & vbCrLf
                     modelCount = modelCount + 1
                 End If
             End If
