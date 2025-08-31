@@ -32,7 +32,7 @@ A pure VBA Excel extension that adds an `=LLM(...)` function for integrating Ope
 
 1. **Download**: Get the required files:
    - `WordiCalc.bas` - Main LLM functions
-   - `JsonConverter.bas` - JSON parsing library  
+   - `LibJSON.bas` - JSON parsing library  
    - `Dictionary.cls` - Cross-platform dictionary (Mac compatibility)
 2. **Import**: Open Excel VBA Editor (`Alt+F11`), right-click VBAProject → Import File (import all 3 files)
 3. **Save**: Save workbook as `.xlsm` and enable macros
@@ -262,34 +262,34 @@ WordiCalc consists of three VBA files:
 - Function registration for IntelliSense tooltips
 - All core functionality
 
-### `JsonConverter.bas` (JSON Library)
-- Professional JSON parsing and serialization
+### `LibJSON.bas` (JSON Library)
+- High-performance JSON parsing and serialization
 - Cross-platform compatibility (Windows/Mac)
-- Robust handling of nested objects and arrays
-- **Source**: [VBA-tools/VBA-JSON](https://github.com/VBA-tools/VBA-JSON) by Tim Hall
+- Non-recursive parsing for deep nesting support
+- **Source**: [VBA-FastJSON](https://github.com/cristianbuse/VBA-FastJSON) by Ion Cristian Buse
 - **License**: MIT
 
 ### `Dictionary.cls` (Cross-Platform Dictionary)
-- Drop-in replacement for `Scripting.Dictionary`
-- Mac compatibility (no Microsoft Scripting Runtime dependency)
-- Automatic fallback to native `Scripting.Dictionary` on Windows when available
-- **Source**: [VBA-tools/VBA-Dictionary](https://github.com/VBA-tools/VBA-Dictionary) by Tim Hall  
+- High-performance dictionary implementation
+- Cross-platform compatibility (Windows/Mac)
+- No external dependencies
+- **Source**: [VBA-FastDictionary](https://github.com/cristianbuse/VBA-FastDictionary) by Ion Cristian Buse
 - **License**: MIT
 
 ## Dependencies & Credits
 
 WordiCalc builds upon excellent open-source VBA libraries:
 
-- **JSON Processing**: [VBA-JSON](https://github.com/VBA-tools/VBA-JSON) - Professional JSON converter for VBA
-- **Cross-Platform Dictionary**: [VBA-Dictionary](https://github.com/VBA-tools/VBA-Dictionary) - Mac-compatible dictionary implementation
+- **JSON Processing**: [VBA-FastJSON](https://github.com/cristianbuse/VBA-FastJSON) - High-performance JSON converter for VBA
+- **Cross-Platform Dictionary**: [VBA-FastDictionary](https://github.com/cristianbuse/VBA-FastDictionary) - Fast dictionary implementation
 
-Both libraries are created by Tim Hall and licensed under MIT. WordiCalc integrates these libraries to provide a robust, cross-platform AI integration solution for Excel.
+Both libraries are created by Ion Cristian Buse and licensed under MIT. WordiCalc integrates these libraries to provide a robust, high-performance, cross-platform AI integration solution for Excel.
 
 ### Why These Dependencies?
 
-1. **Robust JSON Parsing**: VBA's built-in JSON support is limited. VBA-JSON handles complex nested structures reliably.
-2. **Mac Compatibility**: `Scripting.Dictionary` isn't available on Mac. VBA-Dictionary provides seamless cross-platform support.
-3. **Professional Quality**: These are battle-tested libraries used by thousands of VBA developers.
+1. **High-Performance JSON Parsing**: VBA's built-in JSON support is limited. VBA-FastJSON provides fast, reliable parsing with non-recursive algorithms.
+2. **Cross-Platform Compatibility**: Fast dictionary implementation that works seamlessly on both Windows and Mac without external dependencies.
+3. **Battle-Tested Quality**: These libraries are optimized for performance and used by VBA developers worldwide.
 4. **MIT Licensed**: Compatible with both personal and commercial use.
 
 ## License

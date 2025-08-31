@@ -5,7 +5,7 @@
 ### Step 1: Download the Required Files
 Download these three files from this repository:
 - `WordiCalc.bas` - Main WordiCalc functions
-- `JsonConverter.bas` - JSON parsing library
+- `LibJSON.bas` - JSON parsing library
 - `Dictionary.cls` - Cross-platform dictionary (Mac compatibility)
 
 ### Step 2: Open Excel VBA Editor
@@ -18,14 +18,14 @@ Download these three files from this repository:
 1. In the VBA Editor, right-click on **VBAProject** in the Project Explorer
 2. Select **Import File...**
 3. Browse to and select `Dictionary.cls` first
-4. Repeat: Import `JsonConverter.bas` 
+4. Repeat: Import `LibJSON.bas` 
 5. Repeat: Import `WordiCalc.bas`
 
 **Alternative method (copy/paste):**
 1. Right-click VBAProject → Insert → **Class Module** (rename to "Dictionary")
 2. Copy contents of `Dictionary.cls` and paste
-3. Right-click VBAProject → Insert → **Module** (for JsonConverter)
-4. Copy contents of `JsonConverter.bas` and paste  
+3. Right-click VBAProject → Insert → **Module** (for LibJSON)
+4. Copy contents of `LibJSON.bas` and paste  
 5. Right-click VBAProject → Insert → **Module** (for WordiCalc)
 6. Copy contents of `WordiCalc.bas` and paste
 
@@ -77,7 +77,7 @@ In any Excel cell, enter:
 ### "Function not recognized"
 - Ensure all three files are imported correctly:
   - `Dictionary.cls` (as Class Module)
-  - `JsonConverter.bas` (as Module) 
+  - `LibJSON.bas` (as Module) 
   - `WordiCalc.bas` (as Module)
 - Save workbook as `.xlsm` format
 - Enable macros when prompted
@@ -105,7 +105,7 @@ In any Excel cell, enter:
 ## Installation Options
 
 ### Option A: Single Workbook
-- Import all three files (`Dictionary.cls`, `JsonConverter.bas`, `WordiCalc.bas`) into your specific workbook
+- Import all three files (`Dictionary.cls`, `LibJSON.bas`, `WordiCalc.bas`) into your specific workbook
 - Functions only available in that workbook
 
 ### Option B: Excel Add-in (All Workbooks)
@@ -133,8 +133,8 @@ The add-in approach makes LLM functions available in all Excel workbooks.
 ### Dependencies Explained
 **Why three files?**
 1. **`WordiCalc.bas`**: Your main LLM functions
-2. **`JsonConverter.bas`**: Professional JSON parsing (handles complex API responses) 
-3. **`Dictionary.cls`**: Mac-compatible dictionary (replaces Windows-only `Scripting.Dictionary`)
+2. **`LibJSON.bas`**: High-performance JSON parsing (handles complex API responses) 
+3. **`Dictionary.cls`**: Cross-platform dictionary (replaces Windows-only `Scripting.Dictionary`)
 
 These dependencies ensure WordiCalc works reliably across all platforms and handles real-world JSON responses from AI APIs.
 

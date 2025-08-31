@@ -15,13 +15,10 @@ Private Const CONFIG_PREFIX As String = "LLM_"
 Public Function LLM(prompt As String, Optional sys As String = "You are a helpful assistant.", Optional schema As String = "string", Optional values As String = "", Optional useJson As Boolean = False) As Variant
     On Error GoTo ErrorHandler
     
-    If Trim(prompt) = "" Then LLM = "Error: Prompt cannot be empty": Exit Function
-    
+    Dim validationError As String
+    validationError = ValidateParameters(prompt, schema, values)
+    If validationError <> "" Then LLM = validationError: Exit Function
     schema = LCase(Trim(schema))
-    If schema <> "string" And schema <> "integer" And schema <> "float" And schema <> "choice" Then
-        LLM = "Error: Invalid schema. Use: string, integer, float, choice": Exit Function
-    End If
-    If schema = "choice" And values = "" Then LLM = "Error: Choice schema requires allowed values": Exit Function
     
     ' Enhance system message for non-JSON mode
     If Not useJson Then
@@ -129,22 +126,8 @@ Private Function CallAPI(prompt As String, sys As String, schema As String, valu
     headers("Content-Type") = "application/json"
     headers("Authorization") = "Bearer " & GetConfig("openai_api_key")
     
-    Dim messages As String
-    messages = "["
-    If sys <> "" Then messages = messages & "{""role"":""system"",""content"":""" & EscapeJson(sys) & """},"
-    messages = messages & "{""role"":""user"",""content"":""" & EscapeJson(prompt) & """}]"
-    
     Dim body As String
-    body = "{""model"":""" & model & """,""max_tokens"":1000,""messages"":" & messages
-    
-    ' Add JSON schema if needed
-    If useJson And schema <> "string" Then
-        Dim responseFormat As String
-        responseFormat = BuildSchema(schema, values)
-        If responseFormat <> "" Then body = body & ",""response_format"":" & responseFormat
-    End If
-    
-    body = body & "}"
+    body = BuildRequestBody(model, prompt, sys, schema, values, useJson)
     
     Dim result As Dictionary
     Set result = HttpRequest(endpoint, "POST", headers, body)
@@ -155,19 +138,7 @@ Private Function CallAPI(prompt As String, sys As String, schema As String, valu
         Exit Function
     End If
     
-    ' DEBUG: Log successful request info
-    Dim requestDebug As String
-    requestDebug = "DEBUG CallAPI: Request successful" & vbCrLf & result("debug_info") & vbCrLf
-    
-    Dim contentResult As String
-    contentResult = ExtractContent(result("responseText"), useJson, schema)
-    
-    ' If ExtractContent returned an error with debug info, pass it through
-    If Left(contentResult, 6) = "Error:" Then
-        CallAPI = contentResult
-    Else
-        CallAPI = contentResult
-    End If
+    CallAPI = ExtractContent(result("responseText"), useJson, schema)
     Exit Function
     
 ErrorHandler:
@@ -182,21 +153,7 @@ Private Function ConvertOutput(response As String, schema As String, values As S
     Select Case schema
         Case "string": ConvertOutput = response
         Case "integer", "float"
-            Dim numStr As String
-            If useJson Or IsNumeric(response) Then
-                numStr = response
-            Else
-                numStr = ExtractNumber(response)
-            End If
-            If IsNumeric(numStr) Then
-                If schema = "integer" Then
-                    ConvertOutput = CLng(Val(numStr))
-                Else
-                    ConvertOutput = CDbl(Val(numStr))
-                End If
-            Else
-                ConvertOutput = "Error: No valid number found in: " & response
-            End If
+            ConvertOutput = ConvertToNumber(response, schema, useJson)
         Case "choice"
             Dim choices As Variant: choices = Split(values, ",")
             Dim i As Integer
@@ -213,6 +170,45 @@ Private Function ConvertOutput(response As String, schema As String, values As S
     
 ErrorHandler:
     ConvertOutput = "Error: " & Err.Description
+End Function
+
+Private Function ConvertToNumber(response As String, schema As String, useJson As Boolean) As Variant
+    Dim numStr As String
+    If useJson Or IsNumeric(response) Then
+        numStr = response
+    Else
+        numStr = ExtractNumber(response)
+    End If
+    
+    If IsNumeric(numStr) Then
+        If schema = "integer" Then
+            ConvertToNumber = CLng(Val(numStr))
+        Else
+            ConvertToNumber = CDbl(Val(numStr))
+        End If
+    Else
+        ConvertToNumber = "Error: No valid number found in: " & response
+    End If
+End Function
+
+Private Function ValidateParameters(prompt As String, schema As String, values As String) As String
+    If Trim(prompt) = "" Then
+        ValidateParameters = "Error: Prompt cannot be empty"
+        Exit Function
+    End If
+    
+    Dim schemaLower As String: schemaLower = LCase(Trim(schema))
+    If schemaLower <> "string" And schemaLower <> "integer" And schemaLower <> "float" And schemaLower <> "choice" Then
+        ValidateParameters = "Error: Invalid schema. Use: string, integer, float, choice"
+        Exit Function
+    End If
+    
+    If schemaLower = "choice" And values = "" Then
+        ValidateParameters = "Error: Choice schema requires allowed values"
+        Exit Function
+    End If
+    
+    ValidateParameters = "" ' No errors
 End Function
 
 ' ========================================
@@ -325,6 +321,25 @@ ErrorHandler:
 End Function
 
 
+Private Function BuildRequestBody(model As String, prompt As String, sys As String, schema As String, values As String, useJson As Boolean) As String
+    Dim messages As String
+    messages = "["
+    If sys <> "" Then messages = messages & "{""role"":""system"",""content"":""" & EscapeJson(sys) & """},"
+    messages = messages & "{""role"":""user"",""content"":""" & EscapeJson(prompt) & """}]"
+    
+    Dim body As String
+    body = "{""model"":""" & model & """,""max_tokens"":1000,""messages"":" & messages
+    
+    ' Add JSON schema if needed
+    If useJson And schema <> "string" Then
+        Dim responseFormat As String
+        responseFormat = BuildSchema(schema, values)
+        If responseFormat <> "" Then body = body & ",""response_format"":" & responseFormat
+    End If
+    
+    BuildRequestBody = body & "}"
+End Function
+
 Private Function BuildSchema(schema As String, values As String) As String
     On Error GoTo ErrorHandler
     
@@ -367,22 +382,18 @@ Private Function ParseModels(jsonResponse As String) As String
     Dim modelCount As Integer
     
     If parsed.Exists("data") Then
-        Dim modelsStr As String: modelsStr = parsed("data")
-        Dim pos As Long: pos = 1
-        Do While pos < Len(modelsStr)
-            pos = InStr(pos, modelsStr, """id"":")
-            If pos = 0 Then Exit Do
-            pos = InStr(pos, modelsStr, """") + 1
-            Dim modelEnd As Long: modelEnd = InStr(pos, modelsStr, """")
-            If modelEnd > pos Then
-                Dim modelName As String: modelName = Mid(modelsStr, pos, modelEnd - pos)
+        Dim models As Object: Set models = parsed("data")
+        Dim i As Long
+        For i = 1 To models.Count ' LibJSON collections are 1-based
+            Dim model As Object: Set model = models(i)
+            If model.Exists("id") Then
+                Dim modelName As String: modelName = model("id")
                 If InStr(modelName, "embed") = 0 And InStr(modelName, "whisper") = 0 Then
                     result = result & "• " & modelName & vbCrLf
                     modelCount = modelCount + 1
                 End If
             End If
-            pos = modelEnd + 1
-        Loop
+        Next i
     End If
     
     If modelCount = 0 Then
