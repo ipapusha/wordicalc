@@ -50,15 +50,15 @@ WordiCalc.bas:LLM() Function
 ValidateParameters() -> Check prompt, schema, values
      |
      v
-CallAPI() -> Build HTTP request
+CallAPI()
      |
      v
-BuildRequestBody() -> Create JSON payload
+BuildRequestBody() -> Build HTTP request
      |
      |--- useJson=FALSE: Enhance system prompt 
      |    ("Respond with only a single integer.")
      |
-     |--- useJson=TRUE: Add JSON schema to request
+     |--- useJson=TRUE: Add JSON schema to request (for supported models)
      |    ({"type":"object","properties":{"value":{"type":"integer"}}})
      |
      v
