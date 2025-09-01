@@ -1,135 +1,101 @@
 # WordiCalc - AI-Powered Excel Extension
 
-A VBA Excel extension that adds an `=LLM(...)` function for integrating OpenAI and compatible AI models directly into spreadsheets. 
-
-
-## Features
-
-- OpenAI integration with ChatGPT models and compatible APIs
-- Flexible output types: strings, integers, floats, or predefined choices
-- Custom system messages for AI context
-- Support for local AI (Ollama, LocalAI) and cloud providers
-- API key storage in workbook properties
-- Cross-platform compatibility (Windows/Mac)
+A VBA Excel extension that adds an `=LLM(...)` function for integrating OpenAI and compatible AI models directly into spreadsheets.
 
 ## Quick Start
 
 1. **Install**: Download `WordiCalc.bas`, `LibJSON.bas`, `Dictionary.cls` and import into Excel VBA
-2. **Configure**: `=LLMConfig("set", "openai_api_key", "your-key")`
+2. **Configure**: `=LLMConfig("set", "openai_api_key", "your-key")` (optionally set endpoint: `=LLMConfig("set", "openai_api_endpoint", "custom-url")`)
 3. **Use**: `=LLM("What is 2+2?")`
 
-See [INSTALL.md](INSTALL.md) for detailed setup instructions.
+See [INSTALL.md](INSTALL.md) for detailed setup.
 
-## Function Syntax
+## Usage
 
 ```excel
-=LLM(prompt, [system_message], [output_schema], [allowed_values], [use_json_schema])
+=LLM(prompt, [sys], [schema], [values], [useJson])
 ```
 
 **Parameters:**
 - `prompt` (required): Question or instruction for AI
-- `system_message` (optional): Context for AI behavior
-- `output_schema` (optional): "string", "integer", "float", or "choice"
-- `allowed_values` (optional): Comma-separated values for "choice" schema
-- `use_json_schema` (optional): Use structured JSON output (default: FALSE)
+- `sys` (optional): Context for AI behavior (default: "You are a helpful assistant.")
+- `schema` (optional): "string", "integer", "float", or "choice" (default: "string")
+- `values` (optional): Comma-separated values for "choice" schema
+- `useJson` (optional): Use structured JSON output (default: FALSE)
 
-## Usage Examples
-
-### Basic Usage
+**Examples:**
 ```excel
 =LLM("What is the capital of France?")
-=LLM("Analyze this data trend: QQQ went from $450/share to $490/share.", "You are a business analyst")
-```
-
-### Typed Outputs
-```excel
 =LLM("How many days in February 2024?", , "integer")
-=LLM("What's pi to 3 decimal places?", , "float")
 =LLM("Is this positive: 'Great work!'", , "choice", "positive,negative,neutral")
+=LLM("Analyze trend: 100, 150, 200", "Business analyst")
 ```
 
-### JSON Schema Mode (Advanced)
-```excel
-=LLM("Count words: hello world", , "integer", , TRUE)
-=LLM("This product is great!", "classify sentiment", "choice", "positive,negative,neutral", TRUE)
-```
-
-## Configuration Functions
-
+**Configuration:**
 ```excel
 =LLMConfig("set", "openai_api_key", "sk-your-key")
 =LLMConfig("set", "openai_model", "gpt-4")
-=LLMConfig("set", "openai_api_endpoint", "custom-url")
-=LLMConfig("get", "openai_model")
-=LLMConfig("list")
-=LLMStatus()
-=LLMModels()
+=LLMConfig("set", "openai_api_endpoint", "custom-url")  # For Ollama, Azure, etc.
 ```
 
-## Supported APIs
+## Architecture
 
-### OpenAI
-```excel
-=LLMConfig("set", "openai_api_key", "sk-...")
-=LLMConfig("set", "openai_model", "gpt-4")
+```
+Excel Cell: =LLM("What is 2+2?")
+     |
+     v
+WordiCalc.bas:LLM() Function
+     |
+     v
+ValidateParameters() -> Check prompt, schema, values
+     |
+     v
+CallAPI() -> Build HTTP request
+     |
+     v
+BuildRequestBody() -> Create JSON payload
+     |
+     |--- useJson=FALSE: Enhance system prompt 
+     |    ("Respond with only a single integer.")
+     |
+     |--- useJson=TRUE: Add JSON schema to request
+     |    ({"type":"object","properties":{"value":{"type":"integer"}}})
+     |
+     v
+HttpRequest() -> Send POST to OpenAI API
+     |
+     v
+API Response -> JSON with choices[0].message.content
+     |
+     v
+ExtractContent() -> Parse API response
+     |
+     v
+ConvertOutput() -> Convert to Excel data type
+     |
+     v
+Return value to Excel cell
 ```
 
-### Ollama (Local)
-```excel
-=LLMConfig("set", "openai_api_endpoint", "http://localhost:11434/v1/chat/completions")
-=LLMConfig("set", "openai_api_key", "dummy")
-=LLMConfig("set", "openai_model", "llama3")
-```
-
-### Azure OpenAI
-```excel
-=LLMConfig("set", "openai_api_endpoint", "https://your-resource.openai.azure.com/...")
-=LLMConfig("set", "openai_api_key", "your-azure-key")
-```
-
-## Use Cases
-
-- **Data Analysis**: `=LLM("Summarize trend: 100, 150, 200", "Business analyst")`
-- **Classification**: `=LLM("Categorize: customer complaint", , "choice", "billing,shipping,product")`
-- **Text Processing**: `=LLM("Extract email from: Contact john@example.com")`
-- **Calculations**: `=LLM("Future value of $1000, compounded annually at 5%, after 3 years", , "float")`
-
-## File Structure
-
-The extension consists of three VBA files:
+## Components
 
 - **WordiCalc.bas**: Main functions and API integration
-- **LibJSON.bas**: High-performance JSON parser ([VBA-FastJSON](https://github.com/cristianbuse/VBA-FastJSON))
+- **LibJSON.bas**: JSON parser ([VBA-FastJSON](https://github.com/cristianbuse/VBA-FastJSON))
 - **Dictionary.cls**: Cross-platform dictionary ([VBA-FastDictionary](https://github.com/cristianbuse/VBA-FastDictionary))
-
-Both libraries by Ion Cristian Buse, licensed under MIT.
 
 ## Inspiration
 
-The name *WordiCalc* comes from [VisiCalc](https://en.wikipedia.org/wiki/VisiCalc), the original killer spreadsheet app for the Apple II that served as inspiration for Lotus 1-2-3, Multiplan, and ultimately Microsft Excel. See [history](https://en.wikipedia.org/wiki/Microsoft_Excel#Early_history).
+The name *WordiCalc* comes from [VisiCalc](https://en.wikipedia.org/wiki/VisiCalc), the original killer spreadsheet app for the Apple II that served as inspiration for Lotus 1-2-3, Multiplan, and ultimately Microsoft Excel. See [history](https://en.wikipedia.org/wiki/Microsoft_Excel#Early_history).
 
 * [sheets-llm](https://github.com/nicucalcea/sheets-llm)
-* [cellm](https://github.com/getcellm/cellm)
+* [cellm](https://github.com/getcellm/cellm) 
 * [otto](https://ottogrid.ai/)
 * Excel Copilot
-and others.
 
-## Common Issues
+## Troubleshooting
 
-**Function not recognized**: Import all three files and save as .xlsm
+**Function not recognized**: Import all three files and save as .xlsm  
+**Compile error**: Import Dictionary.cls as Class Module (not regular Module)  
+**API errors**: Check internet connection and API key validity  
 
-**Compile error**: Import Dictionary.cls as Class Module (not regular Module)
-
-**API errors**: Check internet connection and API key validity
-
-**Performance**: Use specific prompts and faster models like gpt-3.5-turbo for simple tasks
-
-## Security
-
-API keys are stored in workbook custom properties, not visible in the normal Excel interface. 
-
-**Therefore, do not share workbooks containing API keys.**
-
-## License
-
-Provided as-is for educational and commercial use. Comply with your API provider's terms of service.
+**Security**: API keys are stored in workbook properties. Do not share workbooks containing API keys.
